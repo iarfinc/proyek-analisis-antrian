@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analisis Antrian - Kalkulator Sistem Antrian</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <main class="container">
+        <div class="card-form">
+            <header class="app-header">
+                <img src="https://www.unikom.ac.id/front/img/logo_unikom.png" alt="alternatetext">
+                <br>
+                <br>
+                <h1>Analisis Antrian</h1>
+                <p>Kalkulator Kinerja Sistem Antrian</p>
+            </header>
+
+            <form action="/" method="POST" class="queue-form">
+                <div class="form-group model-selector">
+                    <label>Pilih Model Antrian</label>
+                    <div class="radio-group">
+                        <input type="radio" id="m_m_1" name="model_type" value="M/M/1" {% if not inputs or inputs.model == 'M/M/1' %}checked{% endif %}>
+                        <label for="m_m_1">M/M/1 (Single-Server)</label>
+                        
+                        <input type="radio" id="m_m_s" name="model_type" value="M/M/s" {% if inputs and inputs.model == 'M/M/s' %}checked{% endif %}>
+                        <label for="m_m_s">M/M/s (Multi-Server)</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="lambda"><i class="fa-solid fa-users"></i> Tingkat Kedatangan Rata-rata (λ)</label>
+                    <input type="number" step="any" id="lambda" name="lambda" placeholder="Pelanggan per jam" required value="{{ inputs.lambda if inputs }}">
+                </div>
+                <div class="form-group">
+                    <label for="mu"><i class="fa-solid fa-gears"></i> Tingkat Pelayanan Rata-rata (μ)</label>
+                    <input type="number" step="any" id="mu" name="mu" placeholder="Pelayanan per jam" required value="{{ inputs.mu if inputs }}">
+                </div>
+
+                <div class="form-group" id="servers_input_container">
+                    <label for="servers"><i class="fa-solid fa-server"></i> Jumlah Server (s)</label>
+                    <input type="number" step="1" min="1" id="servers" name="servers" placeholder="Jumlah server paralel" value="{{ inputs.servers if inputs else 1 }}">
+                </div>
+
+                <button type="submit" class="analyze-button">
+                    <i class="fa-solid fa-magnifying-glass-chart"></i> Analisis Sekarang
+                </button>
+            </form>
+        </div>
+
+        {% if results %}
+            <section class="results-section">
+                <h2 class="results-title">
+                    <i class="fa-solid fa-square-poll-vertical"></i>
+                    Hasil Analisis Kinerja
+                </h2>
+                {% if results.error %}
+                    <div class="error-box">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                        <span>{{ results.error }}</span>
+                    </div>
+                {% else %}
+                    <div class="results-grid">
+                        <div class="result-card">
+                            <div class="card-icon" style="background-color: #e0f2fe;"><i class="fa-solid fa-bolt" style="color: #0ea5e9;"></i></div>
+                            <div class="card-content">
+                                <h3>Utilisasi Server (ρ)</h3>
+                                <p>{{ '%.2f'|format(results.rho * 100) }}%</p>
+                            </div>
+                        </div>
+                        <div class="result-card">
+                            <div class="card-icon" style="background-color: #f0fdf4;"><i class="fa-solid fa-chair" style="color: #22c55e;"></i></div>
+                            <div class="card-content">
+                                <h3>Sistem Kosong (P₀)</h3>
+                                <p>{{ '%.2f'|format(results.p0 * 100) }}%</p>
+                            </div>
+                        </div>
+                        <div class="result-card">
+                            <div class="card-icon" style="background-color: #fffbeb;"><i class="fa-solid fa-user-group" style="color: #f59e0b;"></i></div>
+                            <div class="card-content">
+                                <h3>Antrian Rata-rata (Lq)</h3>
+                                <p>{{ '%.2f'|format(results.lq) }} pelanggan</p>
+                            </div>
+                        </div>
+                        <div class="result-card">
+                            <div class="card-icon" style="background-color: #f1f5f9;"><i class="fa-solid fa-users-line" style="color: #64748b;"></i></div>
+                            <div class="card-content">
+                                <h3>Sistem Rata-rata (Ls)</h3>
+                                <p>{{ '%.2f'|format(results.ls) }} pelanggan</p>
+                            </div>
+                        </div>
+                        <div class="result-card">
+                             <div class="card-icon" style="background-color: #fef2f2;"><i class="fa-solid fa-hourglass-half" style="color: #ef4444;"></i></div>
+                            <div class="card-content">
+                                <h3>Waktu Antri (Wq)</h3>
+                                <p>{{ '%.2f'|format(results.wq_minutes) }} menit</p>
+                            </div>
+                        </div>
+                        <div class="result-card">
+                            <div class="card-icon" style="background-color: #faf5ff;"><i class="fa-solid fa-stopwatch-20" style="color: #a855f7;"></i></div>
+                            <div class="card-content">
+                                <h3>Waktu di Sistem (Ws)</h3>
+                                <p>{{ '%.2f'|format(results.ws_minutes) }} menit</p>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            </section>
+        {% endif %}
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const modelRadios = document.querySelectorAll('input[name="model_type"]');
+            const serversInputContainer = document.getElementById('servers_input_container');
+
+            function toggleServerInput() {
+                if (document.querySelector('input[name="model_type"]:checked').value === 'M/M/s') {
+                    serversInputContainer.style.display = 'block';
+                } else {
+                    serversInputContainer.style.display = 'none';
+                }
+            }
+
+            // Jalankan saat halaman dimuat
+            toggleServerInput();
+
+            // Jalankan setiap kali pilihan radio berubah
+            modelRadios.forEach(radio => {
+                radio.addEventListener('change', toggleServerInput);
+            });
+        });
+    </script>
+</body>
+</html>
